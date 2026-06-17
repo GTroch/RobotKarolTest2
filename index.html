@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robot Karol – Programme lesen und interpretieren</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#eef2f7;color:#2d3748;padding:18px;max-width:980px;margin:0 auto}
+
+/* HEADER */
+.page-header{background:linear-gradient(135deg,#1a365d,#2b6cb0);color:#fff;padding:28px 26px;border-radius:14px;margin-bottom:18px;box-shadow:0 6px 24px rgba(26,54,93,.35);text-align:center}
+.page-header h1{font-size:1.75em;margin-bottom:5px}
+.page-header .sub{opacity:.82;margin-bottom:14px;font-size:.95em}
+.badges{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}
+.badge{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);padding:4px 12px;border-radius:20px;font-size:.8em}
+
+/* INSTRUCTIONS */
+.instr{background:#fff;border-radius:12px;padding:18px 22px;margin-bottom:18px;box-shadow:0 2px 12px rgba(0,0,0,.07)}
+.instr h2{font-size:.95em;color:#2b6cb0;margin-bottom:12px}
+.instr p{font-size:.88em;color:#4a5568;margin-bottom:12px;line-height:1.6}
+.instr-steps{display:flex;gap:10px;flex-wrap:wrap}
+.istep{background:#ebf8ff;border-radius:8px;padding:9px 12px;flex:1;min-width:160px;font-size:.82em;color:#2c5282;display:flex;align-items:center;gap:8px}
+.istep .sn{background:#2b6cb0;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85em;flex-shrink:0}
+
+/* EXERCISE CARD */
+.exercise{background:#fff;border-radius:12px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden}
+.ex-head{padding:14px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ex-num{background:#2b6cb0;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.05em;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-weight:700;font-size:1.06em;color:#1a365d}
+.ex-topic{font-size:.77em;color:#718096;margin-top:1px}
+.diff{font-size:.75em;padding:3px 10px;border-radius:12px;font-weight:700;white-space:nowrap}
+.d1{background:#c6f6d5;color:#22543d}
+.d2{background:#fefcbf;color:#744210}
+.d3{background:#feebc8;color:#c05621}
+.d4{background:#fed7d7;color:#9b2c2c}
+
+.ex-body{padding:16px 20px}
+.task-text{background:#ebf8ff;border-left:4px solid #3182ce;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:14px;font-size:.89em;line-height:1.7}
+.task-text b{color:#2c5282}
+
+/* LAYOUT */
+.layout{display:flex;gap:18px;align-items:flex-start}
+.code-panel{flex:0 0 46%;min-width:0}
+.grid-panel{flex:1;min-width:0}
+
+/* CODE DISPLAY */
+.code-block{background:#1e2433;border-radius:8px;padding:14px 18px;font-family:'Consolas','Courier New',monospace;font-size:.84em;line-height:1.85;overflow-x:auto;margin-bottom:0}
+.cl{display:block;white-space:nowrap}
+.cl.i1{padding-left:1.4em}.cl.i2{padding-left:2.8em}.cl.i3{padding-left:4.2em}
+.kw{color:#63b3ed;font-weight:700}.fn{color:#68d391}.cd{color:#f6ad55}
+.cm{color:#718096;font-style:italic}.nm{color:#fc8181}
+
+/* TOOLBAR */
+.start-info{font-size:.8em;color:#4a5568;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.karol-preview{background:#38a169;color:#fff;border-radius:5px;padding:2px 8px;font-size:.9em;font-weight:700}
+.toolbar{display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap}
+.tool-btn{padding:6px 13px;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;font-size:.82em;font-weight:600;background:#f7fafc;color:#4a5568;transition:all .15s}
+.tool-btn.active{border-color:#2b6cb0;background:#ebf8ff;color:#2b6cb0}
+.tool-btn:hover:not(.active){border-color:#cbd5e0;background:#edf2f7}
+
+/* GRID */
+.grid-outer{overflow-x:auto;margin-bottom:10px;padding-bottom:4px}
+.grid-wrap{display:inline-grid;gap:1px;background:#bbb;border:2px solid #888;border-radius:4px}
+.grid-label{width:22px;height:38px;display:flex;align-items:center;justify-content:center;font-size:.7em;color:#718096;font-weight:600;background:#f0f0f0}
+.grid-label.col-lbl{width:38px;height:22px}
+.cell{width:38px;height:38px;background:#f5f5f5;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;transition:background .1s;user-select:none;overflow:hidden}
+.cell:hover:not(.karol-cell){background:#e8e8e8}
+
+/* Cell content layers */
+.cell .c-path{position:absolute;inset:0;background:rgba(66,153,225,.28);pointer-events:none;display:none}
+.cell .c-brick{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:76%;height:66%;background:#e67e22;border:1.5px solid #c0392b;border-bottom-color:#8e1a10;border-right-color:#a93226;border-radius:2px;pointer-events:none;display:none;font-size:0}
+.cell .c-brick::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(0,0,0,.15)}
+.cell .c-brick::after{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(0,0,0,.15)}
+.cell .c-mark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:52%;height:52%;background:#f6e05e;border:2px solid #d69e2e;border-radius:50%;pointer-events:none;display:none}
+.cell .c-path-dot{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:36%;height:36%;background:#4299e1;border-radius:50%;pointer-events:none;display:none}
+
+/* State classes */
+.cell.has-path .c-path,.cell.has-path .c-path-dot{display:block}
+.cell.has-brick .c-brick{display:block}
+.cell.has-brick{background:#fdecd2}
+.cell.has-mark .c-mark{display:block}
+.cell.has-mark{background:#fffff0}
+
+/* Karol */
+.karol-cell{background:#38a169!important;cursor:default;font-size:1.1em;color:#fff}
+.karol-cell:hover{background:#38a169!important}
+.karol-cell.karol-has-mark::after{content:"";position:absolute;bottom:3px;right:3px;width:10px;height:10px;background:#f6e05e;border:1.5px solid #d69e2e;border-radius:50%;pointer-events:none}
+.karol-cell.karol-has-brick::before{content:"";position:absolute;bottom:3px;left:3px;width:13px;height:9px;background:#e67e22;border:1.5px solid #c0392b;border-radius:2px;pointer-events:none}
+.karol-cell.karol-has-path::after{content:"";position:absolute;top:3px;right:3px;width:10px;height:10px;background:#4299e1;border-radius:50%;pointer-events:none}
+.karol-end-cell{background:#805ad5!important;font-size:.9em;color:#fff}
+
+/* Check feedback */
+.cell.chk-ok{outline:3px solid #38a169;outline-offset:-2px;z-index:1}
+.cell.chk-wrong{outline:3px solid #e53e3e;outline-offset:-2px;z-index:1;background:#fed7d7!important}
+.cell.chk-miss{outline:3px dashed #d69e2e;outline-offset:-2px;z-index:1;background:#fffff0!important}
+
+/* Solution overlay */
+.cell.sol-brick{background:#f6ad55!important;outline:2px solid #dd6b20;outline-offset:-1px}
+.cell.sol-mark{background:#fefcbf!important;outline:2px solid #d69e2e;outline-offset:-1px}
+.cell.sol-path{background:#bee3f8!important;outline:2px solid #3182ce;outline-offset:-1px}
+.cell.sol-path .c-path-dot{display:block;background:#2b6cb0}
+.sol-brick::after,.sol-mark::after{pointer-events:none}
+
+/* BUTTONS */
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:0}
+.btn{padding:7px 16px;border:none;border-radius:8px;cursor:pointer;font-size:.84em;font-weight:600;transition:filter .15s}
+.btn:hover{filter:brightness(.9)}
+.btn-chk{background:#2b6cb0;color:#fff}
+.btn-sol{background:#e2e8f0;color:#4a5568}
+.btn-rst{background:#fff5f5;color:#c53030;border:1px solid #fed7d7}
+.feedback{margin-top:9px;font-size:.84em;font-weight:600;min-height:1.2em;padding:6px 0}
+.fb-ok{color:#276749}
+.fb-partial{color:#c05621}
+.fb-perfect{color:#276749;font-size:1em}
+
+/* Legend */
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:.78em;color:#4a5568}
+.leg-item{display:flex;align-items:center;gap:5px}
+.leg-box{width:16px;height:16px;border-radius:3px;border:1px solid #ccc}
+.leg-brick{background:#e67e22;border-color:#c0392b}
+.leg-mark{background:#f6e05e;border-color:#d69e2e;border-radius:50%}
+.leg-path{background:rgba(66,153,225,.35);border-color:#3182ce}
+.leg-karol{background:#38a169;border-color:#276749;border-radius:50%}
+.leg-end{background:#805ad5;border-color:#553c9a;border-radius:50%}
+
+/* Responsive */
+@media(max-width:660px){
+  .layout{flex-direction:column}
+  .code-panel{flex:none;width:100%}
+  .page-header h1{font-size:1.3em}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<div class="page-header">
+  <h1>🤖 Robot Karol – Programme lesen &amp; interpretieren</h1>
+  <div class="sub">Informatik · Klasse 7 · Was macht dieses Programm?</div>
+  <div class="badges">
+    <span class="badge">📋 5 Aufgaben</span>
+    <span class="badge">🧱 Ziegel</span>
+    <span class="badge">🟡 Marken</span>
+    <span class="badge">🔵 Weg</span>
+    <span class="badge">🖱️ Interaktives Gitter</span>
+  </div>
+</div>
+
+<!-- ===== INSTRUCTIONS ===== -->
+<div class="instr">
+  <h2>📖 So funktioniert diese Seite</h2>
+  <p>Lies das Robot-Karol-Programm und überlege, was Karol macht. Markiere dann im Gitter rechts, wo Karol <strong>Ziegel</strong> hinlegt, <strong>Marken</strong> setzt oder welchen <strong>Weg</strong> er zurücklegt.</p>
+  <div class="instr-steps">
+    <div class="istep"><span class="sn">1</span>Lies das Programm sorgfältig</div>
+    <div class="istep"><span class="sn">2</span>Wähle das passende Werkzeug</div>
+    <div class="istep"><span class="sn">3</span>Klicke auf Felder zum Markieren</div>
+    <div class="istep"><span class="sn">4</span>Prüfe oder zeige die Lösung</div>
+  </div>
+</div>
+
+<!-- ===================== AUFGABE 1 ===================== -->
+<div class="exercise" id="ex1">
+  <div class="ex-head">
+    <div class="ex-num">1</div>
+    <div class="ex-meta">
+      <div class="ex-title">Einfache Ziegelreihe</div>
+      <div class="ex-topic">Zählschleife · <code>wiederhole … mal</code></div>
+    </div>
+    <span class="diff d1">⭐ Einfach</span>
+  </div>
+  <div class="ex-body">
+    <div class="task-text">
+      Karol legt eine Reihe von Ziegeln. <b>Markiere mit dem Ziegel-Werkzeug</b>, auf welchen Feldern Ziegel liegen, nachdem das Programm gelaufen ist.
+      <br><em>Hinweis: <code>Hinlegen</code> legt einen Ziegel auf das Feld direkt vor Karol. <code>Schritt</code> bewegt Karol vorwärts.</em>
+    </div>
+    <div class="layout">
+      <div class="code-panel">
+        <div class="code-block">
+          <span class="cl"><span class="cm">{ Karol legt 5 Ziegel in einer Reihe }</span></span>
+          <span class="cl">&nbsp;</span>
+          <span class="cl"><span class="kw">Programm</span></span>
+          <span class="cl i1"><span class="kw">wiederhole</span> <span class="nm">5</span> <span class="kw">mal</span></span>
+          <span class="cl i2"><span class="fn">Hinlegen</span></span>
+          <span class="cl i2"><span class="fn">Schritt</span></span>
+          <span class="cl i1"><span class="kw">*wiederhole</span></span>
+          <span class="cl"><span class="kw">*Programm</span></span>
+        </div>
+      </div>
+      <div class="grid-panel">
+        <div class="start-info">
+          <span class="karol-preview">→ Karol</span>
+          startet bei <strong>Spalte 1, Zeile 2</strong>, Blickrichtung: <strong>Osten →</strong>
+        </div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-box leg-karol"></div> Karol Start</div>
+          <div class="leg-item"><div class="leg-box leg-brick"></div> Ziegel</div>
+          <div class="leg-item"><div class="leg-box leg-end"></div> Karol Ende</div>
+        </div>
+        <div class="toolbar" id="tb1">
+          <button class="tool-btn active" data-mode="brick" onclick="setMode(1,'brick')">🧱 Ziegel</button>
+          <button class="tool-btn" data-mode="path" onclick="setMode(1,'path')">🔵 Weg</button>
+        </div>
+        <div class="grid-outer">
+          <div class="grid-wrap" id="grid1"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-chk" onclick="checkAnswer(1)">✅ Prüfen</button>
+          <button class="btn btn-sol" data-showing="0" onclick="showSolution(1)">🔓 Lösung anzeigen</button>
+          <button class="btn btn-rst" onclick="resetGrid(1)">↺ Zurücksetzen</button>
+        </div>
+        <div class="feedback" id="fb1"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== AUFGABE 2 ===================== -->
+<div class="exercise" id="ex2">
+  <div class="ex-head">
+    <div class="ex-num">2</div>
+    <div class="ex-meta">
+      <div class="ex-title">Marken im Abstand setzen</div>
+      <div class="ex-topic">Zählschleife · <code>MarkeSetzen</code></div>
+    </div>
+    <span class="diff d1">⭐ Einfach</span>
+  </div>
+  <div class="ex-body">
+    <div class="task-text">
+      Karol setzt Marken mit einem Abstand von einem Feld. <b>Markiere mit dem Marken-Werkzeug</b>, auf welchen Feldern nach dem Programm Marken liegen.
+      <br><em>Hinweis: <code>MarkeSetzen</code> setzt eine Marke auf Karols <strong>aktuelles Feld</strong> (nicht vor ihm). Die erste Marke auf dem Startfeld ist bereits eingezeichnet (🟡 kleiner Punkt).</em>
+    </div>
+    <div class="layout">
+      <div class="code-panel">
+        <div class="code-block">
+          <span class="cl"><span class="cm">{ Karol setzt alle 2 Schritte eine Marke }</span></span>
+          <span class="cl">&nbsp;</span>
+          <span class="cl"><span class="kw">Programm</span></span>
+          <span class="cl i1"><span class="kw">wiederhole</span> <span class="nm">4</span> <span class="kw">mal</span></span>
+          <span class="cl i2"><span class="fn">MarkeSetzen</span></span>
+          <span class="cl i2"><span class="fn">Schritt</span></span>
+          <span class="cl i2"><span class="fn">Schritt</span></span>
+          <span class="cl i1"><span class="kw">*wiederhole</span></span>
+          <span class="cl i1"><span class="fn">MarkeSetzen</span></span>
+          <span class="cl"><span class="kw">*Programm</span></span>
+        </div>
+      </div>
+      <div class="grid-panel">
+        <div class="start-info">
+          <span class="karol-preview">→ Karol</span>
+          startet bei <strong>Spalte 1, Zeile 2</strong>, Blickrichtung: <strong>Osten →</strong>
+        </div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-box leg-karol"></div> Karol Start</div>
+          <div class="leg-item"><div class="leg-box leg-mark"></div> Marke</div>
+          <div class="leg-item"><div class="leg-box leg-end"></div> Karol Ende</div>
+        </div>
+        <div class="toolbar" id="tb2">
+          <button class="tool-btn active" data-mode="mark" onclick="setMode(2,'mark')">🟡 Marke</button>
+          <button class="tool-btn" data-mode="path" onclick="setMode(2,'path')">🔵 Weg</button>
+        </div>
+        <div class="grid-outer">
+          <div class="grid-wrap" id="grid2"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-chk" onclick="checkAnswer(2)">✅ Prüfen</button>
+          <button class="btn btn-sol" data-showing="0" onclick="showSolution(2)">🔓 Lösung anzeigen</button>
+          <button class="btn btn-rst" onclick="resetGrid(2)">↺ Zurücksetzen</button>
+        </div>
+        <div class="feedback" id="fb2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== AUFGABE 3 ===================== -->
+<div class="exercise" id="ex3">
+  <div class="ex-head">
+    <div class="ex-num">3</div>
+    <div class="ex-meta">
+      <div class="ex-title">L-Form aus Ziegeln – eigene Anweisung</div>
+      <div class="ex-topic">Eigene Anweisung · Richtungswechsel</div>
+    </div>
+    <span class="diff d2">⭐⭐ Mittel</span>
+  </div>
+  <div class="ex-body">
+    <div class="task-text">
+      Karol nutzt eine selbst definierte Anweisung und ändert dann die Richtung. <b>Markiere alle Felder mit Ziegeln</b> und zeichne auch <b>Karols Weg</b> ein.
+    </div>
+    <div class="layout">
+      <div class="code-panel">
+        <div class="code-block">
+          <span class="cl"><span class="cm">{ Karol baut eine L-Form }</span></span>
+          <span class="cl">&nbsp;</span>
+          <span class="cl"><span class="kw">Anweisung</span> <span class="fn">Reihe</span></span>
+          <span class="cl i1"><span class="kw">wiederhole</span> <span class="nm">4</span> <span class="kw">mal</span></span>
+          <span class="cl i2"><span class="fn">Hinlegen</span></span>
+          <span class="cl i2"><span class="fn">Schritt</span></span>
+          <span class="cl i1"><span class="kw">*wiederhole</span></span>
+          <span class="cl"><span class="kw">*Anweisung</span></span>
+          <span class="cl">&nbsp;</span>
+          <span class="cl"><span class="kw">Programm</span></span>
+          <span class="cl i1"><span class="fn">Reihe</span></span>
+          <span class="cl i1"><span class="fn">RechtsDrehen</span></span>
+          <span class="cl i1"><span class="fn">Reihe</span></span>
+          <span class="cl"><span class="kw">*Programm</span></span>
+        </div>
+      </div>
+      <div class="grid-panel">
+        <div class="start-info">
+          <span class="karol-preview">→ Karol</span>
+          startet bei <strong>Spalte 1, Zeile 3</strong>, Blickrichtung: <strong>Osten →</strong>
+        </div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-box leg-karol"></div> Karol Start</div>
+          <div class="leg-item"><div class="leg-box leg-brick"></div> Ziegel</div>
+          <div class="leg-item"><div class="leg-box leg-path"></div> Weg</div>
+          <div class="leg-item"><div class="leg-box leg-end"></div> Karol Ende</div>
+        </div>
+        <div class="toolbar" id="tb3">
+          <button class="tool-btn active" data-mode="brick" onclick="setMode(3,'brick')">🧱 Ziegel</button>
+          <button class="tool-btn" data-mode="path" onclick="setMode(3,'path')">🔵 Weg</button>
+        </div>
+        <div class="grid-outer">
+          <div class="grid-wrap" id="grid3"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-chk" onclick="checkAnswer(3)">✅ Prüfen</button>
+          <button class="btn btn-sol" data-showing="0" onclick="showSolution(3)">🔓 Lösung anzeigen</button>
+          <button class="btn btn-rst" onclick="resetGrid(3)">↺ Zurücksetzen</button>
+        </div>
+        <div class="feedback" id="fb3"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== AUFGABE 4 ===================== -->
+<div class="exercise" id="ex4">
+  <div class="ex-head">
+    <div class="ex-num">4</div>
+    <div class="ex-meta">
+      <div class="ex-title">Quadrat aus Ziegeln – verschachtelte Schleifen</div>
+      <div class="ex-topic">Eigene Anweisung · Zählschleife · 4 Seiten</div>
+    </div>
+    <span class="diff d3">⭐⭐⭐ Mittel-Hoch</span>
+  </div>
+  <div class="ex-body">
+    <div class="task-text">
+      Karol baut ein Quadrat aus Ziegeln. Die Anweisung <b>Seite</b> legt eine Seite des Quadrats und dreht sich an der Ecke. Das Hauptprogramm ruft <b>Seite</b> viermal auf. <b>Markiere alle Felder mit Ziegeln.</b>
+    </div>
+    <div class="layout">
+      <div class="code-panel">
+        <div class="code-block">
+          <span class="cl"><span class="cm">{ Karol baut ein Quadrat }</span></span>
+          <span class="cl">&nbsp;</span>
+          <span class="cl"><span class="kw">Anweisung</span> <span class="fn">Seite</span></span>
+          <span class="cl i1"><span class="kw">wiederhole</span> <span class="nm">3</span> <span class="kw">mal</span></span>
+          <span class="cl i2"><span class="fn">Hinlegen</span></span>
+          <span class="cl i2"><span class="fn">Schritt</span></span>
+          <span class="cl i1"><span class="kw">*wiederhole</span></span>
+          <span class="cl i1"><span class="fn">LinksDrehen</span></span>
+          <span class="cl"><span class="kw">*Anweisung</span></span>
+          <span class="cl">&nbsp;</span>
+          <span class="cl"><span class="kw">Programm</span></span>
+          <span class="cl i1"><span class="kw">wiederhole</span> <span class="nm">4</span> <span class="kw">mal</span></span>
+          <span class="cl i2"><span class="fn">Seite</span></span>
+          <span class="cl i1"><span class="kw">*wiederhole</span></span>
+          <span class="cl"><span class="kw">*Programm</span></span>
+        </div>
+      </div>
+      <div class="grid-panel">
+        <div class="start-info">
+          <span class="karol-preview">→ Karol</span>
+          startet bei <strong>Spalte 1, Zeile 6</strong>, Blickrichtung: <strong>Osten →</strong>
+        </div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-box leg-karol"></div> Karol Start/Ende</div>
+          <div class="leg-item"><div class="leg-box leg-brick"></div> Ziegel</div>
+        </div>
+        <div class="toolbar" id="tb4">
+          <button class="tool-btn active" data-mode="brick" onclick="setMode(4,'brick')">🧱 Ziegel</button>
+          <button class="tool-btn" data-mode="path" onclick="setMode(4,'path')">🔵 Weg</button>
+        </div>
+        <div class="grid-outer">
+          <div class="grid-wrap" id="grid4"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-chk" onclick="checkAnswer(4)">✅ Prüfen</button>
+          <button class="btn btn-sol" data-showing="0" onclick="showSolution(4)">🔓 Lösung anzeigen</button>
+          <button class="btn btn-rst" onclick="resetGrid(4)">↺ Zurücksetzen</button>
+        </div>
+        <div class="feedback" id="fb4"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== AUFGABE 5 ===================== -->
+<div class="exercise" id="ex5">
+  <div class="ex-head">
+    <div class="ex-num">5</div>
+    <div class="ex-meta">
+      <div class="ex-title">Diagonale Treppe – Weg und Ziegel</div>
+      <div class="ex-topic">Kombiniert: Drehen · Schritt · Hinlegen</div>
+    </div>
+    <span class="diff d4">⭐⭐⭐⭐ Hoch</span>
+  </div>
+  <div class="ex-body">
+    <div class="task-text">
+      Karol legt in jeder Schleifen-Runde einen Ziegel, geht einen Schritt, dreht nach Norden ab, macht einen weiteren Schritt und dreht zurück nach Osten. Das Ergebnis ist eine <b>diagonale Treppe</b>.
+      <b>Zeichne sowohl den Weg als auch die Ziegel ein.</b>
+    </div>
+    <div class="layout">
+      <div class="code-panel">
+        <div class="code-block">
+          <span class="cl"><span class="cm">{ Karol baut eine Diagonale }</span></span>
+          <span class="cl">&nbsp;</span>
+          <span class="cl"><span class="kw">Programm</span></span>
+          <span class="cl i1"><span class="kw">wiederhole</span> <span class="nm">4</span> <span class="kw">mal</span></span>
+          <span class="cl i2"><span class="fn">Hinlegen</span> <span class="cm">{ Ziegel vor sich }</span></span>
+          <span class="cl i2"><span class="fn">Schritt</span> <span class="cm">{ auf Ziegel treten }</span></span>
+          <span class="cl i2"><span class="fn">LinksDrehen</span> <span class="cm">{ nach Norden }</span></span>
+          <span class="cl i2"><span class="fn">Schritt</span> <span class="cm">{ Schritt nach Norden }</span></span>
+          <span class="cl i2"><span class="fn">RechtsDrehen</span> <span class="cm">{ wieder Osten }</span></span>
+          <span class="cl i1"><span class="kw">*wiederhole</span></span>
+          <span class="cl"><span class="kw">*Programm</span></span>
+        </div>
+      </div>
+      <div class="grid-panel">
+        <div class="start-info">
+          <span class="karol-preview">→ Karol</span>
+          startet bei <strong>Spalte 1, Zeile 5</strong>, Blickrichtung: <strong>Osten →</strong>
+        </div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-box leg-karol"></div> Karol Start</div>
+          <div class="leg-item"><div class="leg-box leg-brick"></div> Ziegel</div>
+          <div class="leg-item"><div class="leg-box leg-path"></div> Weg</div>
+          <div class="leg-item"><div class="leg-box leg-end"></div> Karol Ende</div>
+        </div>
+        <div class="toolbar" id="tb5">
+          <button class="tool-btn active" data-mode="brick" onclick="setMode(5,'brick')">🧱 Ziegel</button>
+          <button class="tool-btn" data-mode="path" onclick="setMode(5,'path')">🔵 Weg</button>
+        </div>
+        <div class="grid-outer">
+          <div class="grid-wrap" id="grid5"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-chk" onclick="checkAnswer(5)">✅ Prüfen</button>
+          <button class="btn btn-sol" data-showing="0" onclick="showSolution(5)">🔓 Lösung anzeigen</button>
+          <button class="btn btn-rst" onclick="resetGrid(5)">↺ Zurücksetzen</button>
+        </div>
+        <div class="feedback" id="fb5"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;color:#a0aec0;font-size:.78em;margin-top:16px;padding:14px">
+  Robot Karol – Programme lesen &amp; interpretieren · Klasse 7 · Informatik · 2026
+</div>
+
+<script>
+// ===== EXERCISE DEFINITIONS =====
+// Coordinate system: col=1 leftmost, row=1 topmost
+// Direction: E=East(right), S=South(down), W=West(left), N=North(up)
+// Hinlegen: brick goes on cell IN FRONT of Karol, then Schritt moves Karol there
+// MarkeSetzen: mark goes on Karol's CURRENT cell
+
+const EX = {
+  1: {
+    cols: 8, rows: 4,
+    karolStart: [1, 2, 'E'],
+    karolEnd:   [6, 2, 'E'],
+    solBricks: [[2,2],[3,2],[4,2],[5,2],[6,2]],
+    solMarks:  [],
+    solPath:   [],
+    // Trace: Each iteration: brick in front, step forward
+    // Iter 1: brick(2,2), step→(2,2). Iter2: brick(3,2)... etc.
+  },
+  2: {
+    cols: 10, rows: 3,
+    karolStart: [1, 2, 'E'],
+    karolEnd:   [9, 2, 'E'],
+    solBricks: [],
+    solMarks:  [[1,2],[3,2],[5,2],[7,2],[9,2]],
+    solPath:   [],
+    // Trace: mark at current pos, step×2. 4 loops + final mark
+    // Iter1: mark(1,2), step→(2,2), step→(3,2). Iter2: mark(3,2)...
+    // After loop at (9,2), then mark(9,2)
+  },
+  3: {
+    cols: 8, rows: 8,
+    karolStart: [1, 3, 'E'],
+    karolEnd:   [5, 7, 'S'],
+    solBricks: [[2,3],[3,3],[4,3],[5,3],[5,4],[5,5],[5,6],[5,7]],
+    solMarks:  [],
+    solPath:   [[1,3],[2,3],[3,3],[4,3],[5,3],[5,4],[5,5],[5,6],[5,7]],
+    // Anweisung Reihe: 4× Hinlegen+Schritt
+    // Reihe 1 (East from (1,3)): bricks (2,3),(3,3),(4,3),(5,3), end at (5,3)
+    // RechtsDrehen → South
+    // Reihe 2 (South from (5,3)): bricks (5,4),(5,5),(5,6),(5,7), end at (5,7)
+  },
+  4: {
+    cols: 6, rows: 8,
+    karolStart: [1, 6, 'E'],
+    karolEnd:   [1, 6, 'E'],  // back to start after full square
+    solBricks: [[2,6],[3,6],[4,6],[4,5],[4,4],[4,3],[3,3],[2,3],[1,3],[1,4],[1,5],[1,6]],
+    solMarks:  [],
+    solPath:   [],
+    // Seite(East): bricks(2,6),(3,6),(4,6); at (4,6); turn left→North
+    // Seite(North): bricks(4,5),(4,4),(4,3); at (4,3); turn left→West
+    // Seite(West):  bricks(3,3),(2,3),(1,3); at (1,3); turn left→South
+    // Seite(South): bricks(1,4),(1,5),(1,6); at (1,6); turn left→East
+    // 12 bricks forming a square
+  },
+  5: {
+    cols: 7, rows: 6,
+    karolStart: [1, 5, 'E'],
+    karolEnd:   [5, 1, 'E'],
+    solBricks: [[2,5],[3,4],[4,3],[5,2]],
+    solMarks:  [],
+    solPath:   [[1,5],[2,5],[2,4],[3,4],[3,3],[4,3],[4,2],[5,2],[5,1]],
+    // Iter 1: brick(2,5), step→(2,5); turnLeft(N), step→(2,4); turnRight(E)
+    // Iter 2: brick(3,4), step→(3,4); turnLeft(N), step→(3,3); turnRight(E)
+    // Iter 3: brick(4,3), step→(4,3); turnLeft(N), step→(4,2); turnRight(E)
+    // Iter 4: brick(5,2), step→(5,2); turnLeft(N), step→(5,1); turnRight(E)
+  }
+};
+
+// ===== STATE =====
+const grids   = {};   // grids[exId][`${c},${r}`] = {brick, mark, path}
+const modes   = {};   // modes[exId] = 'brick'|'mark'|'path'
+const solShowing = {}; // solShowing[exId] = bool
+
+const DIRS = {E:'→', S:'↓', W:'←', N:'↑'};
+
+// ===== INIT =====
+function initAll() {
+  for (let id = 1; id <= 5; id++) {
+    grids[id] = {};
+    modes[id] = (EX[id].solMarks.length > 0 && EX[id].solBricks.length === 0) ? 'mark' : 'brick';
+    solShowing[id] = false;
+    buildGrid(id);
+    updateToolbar(id);
+    // Pre-place items on start cell if solution requires it
+    const ex = EX[id];
+    const [kc, kr] = ex.karolStart;
+    const startKey = kc + ',' + kr;
+    const startData = {};
+    let startCssClasses = [];
+    if (ex.solMarks.some(([c,r]) => c === kc && r === kr))  { startData.mark  = true; startCssClasses.push('karol-has-mark'); }
+    if (ex.solBricks.some(([c,r]) => c === kc && r === kr)) { startData.brick = true; startCssClasses.push('karol-has-brick'); }
+    if (ex.solPath.some(([c,r])  => c === kc && r === kr))  { startData.path  = true; startCssClasses.push('karol-has-path'); }
+    if (startCssClasses.length > 0) {
+      grids[id][startKey] = startData;
+      const startCell = document.querySelector(`#grid${id} [data-c="${kc}"][data-r="${kr}"]`);
+      if (startCell) startCssClasses.forEach(cl => startCell.classList.add(cl));
+    }
+  }
+}
+
+// ===== BUILD GRID =====
+function buildGrid(id) {
+  const ex = EX[id];
+  const wrap = document.getElementById('grid' + id);
+  wrap.innerHTML = '';
+
+  const totalCols = ex.cols + 1; // +1 for row labels
+  wrap.style.gridTemplateColumns = `22px repeat(${ex.cols}, 38px)`;
+
+  // Header row: empty corner + column labels
+  addCell(wrap, '', 'grid-label');
+  for (let c = 1; c <= ex.cols; c++) addCell(wrap, c, 'grid-label');
+
+  // Data rows
+  for (let r = 1; r <= ex.rows; r++) {
+    addCell(wrap, r, 'grid-label');
+    for (let c = 1; c <= ex.cols; c++) {
+      const cell = makeCell(id, c, r);
+      wrap.appendChild(cell);
+    }
+  }
+}
+
+function addCell(parent, text, cls) {
+  const div = document.createElement('div');
+  div.className = cls;
+  div.textContent = text;
+  parent.appendChild(div);
+  return div;
+}
+
+function makeCell(id, c, r) {
+  const ex = EX[id];
+  const div = document.createElement('div');
+  div.className = 'cell';
+  div.dataset.c = c;
+  div.dataset.r = r;
+
+  const [kc, kr, kdir] = ex.karolStart;
+  if (c === kc && r === kr) {
+    div.classList.add('karol-cell');
+    div.textContent = DIRS[kdir];
+    div.title = `Karol Start (${c},${r}) Blick: ${kdir}`;
+    return div;
+  }
+
+  // Create layer divs
+  div.innerHTML = '<div class="c-path"></div><div class="c-path-dot"></div><div class="c-brick"></div><div class="c-mark"></div>';
+  div.addEventListener('click', () => cellClick(id, c, r));
+  div.title = `Spalte ${c}, Zeile ${r}`;
+  return div;
+}
+
+// ===== CELL CLICK =====
+function cellClick(id, c, r) {
+  const ex = EX[id];
+  const [kc, kr] = ex.karolStart;
+  if (c === kc && r === kr) return; // can't click start cell
+
+  const key = c + ',' + r;
+  if (!grids[id][key]) grids[id][key] = {};
+  const m = modes[id];
+  grids[id][key][m] = !grids[id][key][m];
+  renderCell(id, c, r);
+}
+
+function renderCell(id, c, r) {
+  const cell = document.querySelector(`#grid${id} [data-c="${c}"][data-r="${r}"]`);
+  if (!cell || cell.classList.contains('karol-cell')) return;
+
+  const data = (grids[id][c + ',' + r]) || {};
+  // Keep check/solution classes
+  const keepClasses = ['chk-ok','chk-wrong','chk-miss','sol-brick','sol-mark','sol-path','karol-end-cell'];
+  const keep = keepClasses.filter(cl => cell.classList.contains(cl));
+
+  cell.className = 'cell';
+  keep.forEach(cl => cell.classList.add(cl));
+  if (data.brick) cell.classList.add('has-brick');
+  if (data.mark)  cell.classList.add('has-mark');
+  if (data.path)  cell.classList.add('has-path');
+}
+
+// ===== MODE =====
+function setMode(id, mode) {
+  modes[id] = mode;
+  updateToolbar(id);
+}
+
+function updateToolbar(id) {
+  document.querySelectorAll(`#tb${id} .tool-btn`).forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === modes[id]);
+  });
+}
+
+// ===== CHECK ANSWER =====
+function checkAnswer(id) {
+  const ex = EX[id];
+  const grid = grids[id];
+
+  // Clear previous check highlights
+  document.querySelectorAll(`#grid${id} .cell:not(.karol-cell)`).forEach(cell => {
+    cell.classList.remove('chk-ok','chk-wrong','chk-miss');
+  });
+
+  const solBricks = new Set(ex.solBricks.map(([c,r]) => c+','+r));
+  const solMarks  = new Set(ex.solMarks.map(([c,r]) => c+','+r));
+  const solPath   = new Set(ex.solPath.map(([c,r]) => c+','+r));
+
+  let correct = 0, wrong = 0, missing = 0;
+  const total = ex.solBricks.length + ex.solMarks.length + ex.solPath.length;
+
+  for (let r = 1; r <= ex.rows; r++) {
+    for (let c = 1; c <= ex.cols; c++) {
+      const [kc,kr] = ex.karolStart;
+      // Start cell included in check (may have pre-placed marks)
+      const key = c+','+r;
+      const data = grid[key] || {};
+      const cell = document.querySelector(`#grid${id} [data-c="${c}"][data-r="${r}"]`);
+      if (!cell) continue;
+
+      const isBrick = !!data.brick;
+      const isMark  = !!data.mark;
+      const isPath  = !!data.path;
+
+      const sbrick = solBricks.has(key);
+      const smark  = solMarks.has(key);
+      const spath  = solPath.has(key);
+
+      // Check if this cell is correctly marked
+      const studentHasCorrect = (isBrick && sbrick) || (isMark && smark) || (isPath && spath);
+      const studentHasWrong   = (isBrick && !sbrick) || (isMark && !smark) || (isPath && !spath && isBrick===false && isMark===false);
+
+      if (sbrick || smark || spath) {
+        // Should be marked
+        const studentGotIt = (sbrick && isBrick) || (smark && isMark) || (spath && isPath);
+        if (studentGotIt) {
+          cell.classList.add('chk-ok');
+          correct++;
+        } else {
+          cell.classList.add('chk-miss');
+          missing++;
+        }
+      } else if (isBrick || isMark || isPath) {
+        // Shouldn't be marked but is
+        cell.classList.add('chk-wrong');
+        wrong++;
+      }
+    }
+  }
+
+  const fb = document.getElementById('fb' + id);
+  if (correct === total && wrong === 0) {
+    fb.innerHTML = '🎉 <strong>Perfekt!</strong> Alle Felder richtig markiert!';
+    fb.className = 'feedback fb-ok';
+  } else {
+    const pct = Math.round((correct / Math.max(total,1)) * 100);
+    fb.innerHTML = `Richtig: ${correct}/${total} (${pct}%) · Falsch: ${wrong} · Fehlend: ${missing}`;
+    fb.className = 'feedback fb-partial';
+  }
+}
+
+// ===== SHOW/HIDE SOLUTION =====
+function showSolution(id) {
+  const ex = EX[id];
+  const btn = document.querySelector(`#ex${id} .btn-sol`);
+  const isOn = solShowing[id];
+
+  // Remove solution classes
+  document.querySelectorAll(`#grid${id} .cell`).forEach(cell => {
+    cell.classList.remove('sol-brick','sol-mark','sol-path','karol-end-cell');
+    cell.classList.remove('chk-ok','chk-wrong','chk-miss');
+  });
+
+  if (!isOn) {
+    // Show solution
+    ex.solBricks.forEach(([c,r]) => {
+      const cell = document.querySelector(`#grid${id} [data-c="${c}"][data-r="${r}"]`);
+      if (cell) cell.classList.add('sol-brick');
+    });
+    ex.solMarks.forEach(([c,r]) => {
+      const cell = document.querySelector(`#grid${id} [data-c="${c}"][data-r="${r}"]`);
+      if (cell) cell.classList.add('sol-mark');
+    });
+    ex.solPath.forEach(([c,r]) => {
+      const cell = document.querySelector(`#grid${id} [data-c="${c}"][data-r="${r}"]`);
+      if (cell) { cell.classList.add('sol-path'); }
+    });
+    // Show Karol's end position
+    const [ec,er,edir] = ex.karolEnd;
+    const [sc,sr] = ex.karolStart;
+    if (ec !== sc || er !== sr) {
+      const endCell = document.querySelector(`#grid${id} [data-c="${ec}"][data-r="${er}"]`);
+      if (endCell && !endCell.classList.contains('karol-cell')) {
+        endCell.classList.add('karol-end-cell');
+        endCell.textContent = DIRS[edir];
+      }
+    }
+    btn.textContent = '🔒 Lösung verstecken';
+    document.getElementById('fb' + id).textContent = '';
+    document.getElementById('fb' + id).className = 'feedback';
+  } else {
+    // Also remove end indicator text from cells
+    document.querySelectorAll(`#grid${id} .cell.karol-end-cell`).forEach(cell => {
+      cell.textContent = '';
+      cell.classList.remove('karol-end-cell');
+    });
+    btn.textContent = '🔓 Lösung anzeigen';
+  }
+
+  solShowing[id] = !isOn;
+}
+
+// ===== RESET =====
+function resetGrid(id) {
+  grids[id] = {};
+  // If solution showing, hide it first
+  if (solShowing[id]) {
+    document.querySelectorAll(`#grid${id} .cell`).forEach(cell => {
+      cell.classList.remove('sol-brick','sol-mark','sol-path','karol-end-cell');
+      if (cell.classList.contains('karol-end-cell')) cell.textContent = '';
+    });
+    solShowing[id] = false;
+    const btn = document.querySelector(`#ex${id} .btn-sol`);
+    btn.textContent = '🔓 Lösung anzeigen';
+  }
+  document.querySelectorAll(`#grid${id} .cell:not(.karol-cell)`).forEach(cell => {
+    cell.className = 'cell';
+  });
+  document.getElementById('fb' + id).textContent = '';
+  document.getElementById('fb' + id).className = 'feedback';
+  // Re-apply pre-placed start cell items (brick/mark/path)
+  const ex2 = EX[id];
+  const [kc2, kr2] = ex2.karolStart;
+  const startKey2 = kc2 + ',' + kr2;
+  const startData2 = {};
+  const startCss2 = [];
+  if (ex2.solMarks.some(([c,r])  => c === kc2 && r === kr2)) { startData2.mark  = true; startCss2.push('karol-has-mark'); }
+  if (ex2.solBricks.some(([c,r]) => c === kc2 && r === kr2)) { startData2.brick = true; startCss2.push('karol-has-brick'); }
+  if (ex2.solPath.some(([c,r])   => c === kc2 && r === kr2)) { startData2.path  = true; startCss2.push('karol-has-path'); }
+  if (startCss2.length > 0) {
+    grids[id][startKey2] = startData2;
+    const startCell2 = document.querySelector(`#grid${id} [data-c="${kc2}"][data-r="${kr2}"]`);
+    if (startCell2) startCss2.forEach(cl => startCell2.classList.add(cl));
+  }
+  updateToolbar(id);
+}
+
+// ===== START =====
+document.addEventListener('DOMContentLoaded', initAll);
+</script>
+</body>
+</html>
